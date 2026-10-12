@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能 SaaS 后台管理</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #1f2328; }
+
+  .login-box { max-width: 380px; margin: 100px auto; background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+  .login-box h1 { font-size: 20px; margin-bottom: 20px; text-align: center; }
+  .login-box input { width: 100%; padding: 10px 12px; margin: 8px 0; border: 1px solid #d0d7de; border-radius: 8px; font-size: 14px; }
+  .login-box button { width: 100%; padding: 10px; margin-top: 12px; background: #0969da; color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
+  .login-box button:hover { background: #0860ca; }
+
+  .app { max-width: 900px; margin: 0 auto; padding: 20px; }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #d0d7de; margin-bottom: 20px; }
+  .header h1 { font-size: 18px; }
+  .header button { padding: 6px 14px; background: #cf222e; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { padding: 8px 16px; background: #fff; border: 1px solid #d0d7de; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .tab.active { background: #0969da; color: #fff; border-color: #0969da; }
+
+  .panel { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+
+  .chat-box { height: 400px; overflow-y: auto; border: 1px solid #d0d7de; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .msg { margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; max-width: 80%; }
+  .msg.user { background: #ddf4ff; margin-left: auto; }
+  .msg.ai { background: #f6f8fa; }
+  .msg .role { font-size: 12px; color: #57606a; margin-bottom: 4px; }
+
+  .input-row { display: flex; gap: 8px; }
+  .input-row input { flex: 1; padding: 10px 12px; border: 1px solid #d0d7de; border-radius: 8px; font-size: 14px; }
+  .input-row button { padding: 10px 20px; background: #0969da; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+
+  .upload-area { border: 2px dashed #d0d7de; border-radius: 8px; padding: 32px; text-align: center; margin-bottom: 16px; }
+  .upload-area input { margin-top: 12px; }
+  .upload-area button { margin-top: 12px; padding: 8px 20px; background: #1a7f37; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+
+  .result { margin-top: 12px; padding: 12px; background: #dafbe1; border-radius: 8px; font-size: 14px; display: none; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div class="login-box" id="loginPage">
+  <h1>智能 SaaS 后台管理</h1>
+  <input type="text" id="username" placeholder="用户名" value="admin">
+  <input type="password" id="password" placeholder="密码" value="123456">
+  <button onclick="doLogin()">登 录</button>
+</div>
+
+<!-- 主界面 -->
+<div class="app hidden" id="mainPage">
+  <div class="header">
+    <h1>智能 SaaS 后台管理</h1>
+    <button onclick="logout()">退出登录</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('chat')">AI 对话</div>
+    <div class="tab" onclick="switchTab('upload')">知识库上传</div>
+  </div>
+
+  <!-- AI 对话面板 -->
+  <div class="panel" id="chatPanel">
+    <div class="chat-box" id="chatBox">
+      <div class="msg ai"><div class="role">AI 助手</div>你好，我是 AI 助手，有什么可以帮你的？</div>
+    </div>
+    <div class="input-row">
+      <input type="text" id="chatInput" placeholder="输入消息..." onkeydown="if(event.key==='Enter')doChat()">
+      <button onclick="doChat()">发送</button>
+    </div>
+  </div>
+
+  <!-- 上传面板 -->
+  <div class="panel hidden" id="uploadPanel">
+    <div class="upload-area">
+      <p>选择要上传的文档（支持 .docx / .pdf）</p>
+      <input type="file" id="fileInput" accept=".docx,.pdf">
+      <br>
+      <button onclick="doUpload()">上传到知识库</button>
+    </div>
+    <div class="result" id="uploadResult"></div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8080';
+
+function getToken() { return localStorage.getItem('token') || ''; }
+
+async function doLogin() {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const res = await fetch(API + '/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  const data = await res.json();
+  if (data.code === 0) {
+    localStorage.setItem('token', data.data.token);
+    localStorage.setItem('nickname', data.data.nickname);
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('mainPage').classList.remove('hidden');
+  } else {
+    alert('登录失败：' + data.message);
+  }
+}
+
+function logout() {
+  localStorage.removeItem('token');
+  location.reload();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('chatPanel').classList.toggle('hidden', tab !== 'chat');
+  document.getElementById('uploadPanel').classList.toggle('hidden', tab !== 'upload');
+}
+
+async function doChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  const chatBox = document.getElementById('chatBox');
+  chatBox.innerHTML += '<div class="msg user"><div class="role">我</div>' + msg + '</div>';
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  const res = await fetch(API + '/api/ai/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + getToken()
+    },
+    body: JSON.stringify({ message: msg })
+  });
+  const data = await res.json();
+  if (data.code === 0) {
+    chatBox.innerHTML += '<div class="msg ai"><div class="role">AI 助手</div>' + data.data.reply + '</div>';
+  } else {
+    chatBox.innerHTML += '<div class="msg ai"><div class="role">错误</div>' + data.message + '</div>';
+  }
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function doUpload() {
+  const fileInput = document.getElementById('fileInput');
+  if (!fileInput.files[0]) { alert('请先选择文件'); return; }
+
+  const form = new FormData();
+  form.append('file', fileInput.files[0]);
+  form.append('tenant_id', '1');
+
+  const res = await fetch(API + '/api/document/upload', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + getToken() },
+    body: form
+  });
+  const data = await res.json();
+  const resultDiv = document.getElementById('uploadResult');
+  resultDiv.style.display = 'block';
+  if (data.code === 0) {
+    resultDiv.innerHTML = '上传成功！<br>文档 ID：' + data.data.doc_id + '<br>文件名：' + data.data.file_name + '<br>切片数：' + data.data.chunk_count;
+  } else {
+    resultDiv.innerHTML = '上传失败：' + data.message;
+    resultDiv.style.background = '#ffebe9';
+  }
+}
+
+// 检查登录状态
+if (getToken()) {
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('mainPage').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
