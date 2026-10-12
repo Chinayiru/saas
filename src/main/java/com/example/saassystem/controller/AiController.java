@@ -22,8 +22,11 @@ import java.util.Map;
 @RequestMapping("/api/ai")
 public class AiController {
 
-    @Value("${app.ai.url}") private String aiUrl;
-    @Autowired private RestTemplate restTemplate;
+    @Value("${app.ai.url}")
+    private String aiUrl;
+
+    @Autowired private
+    RestTemplate restTemplate;
 
     @PostMapping("/chat")
     public Result<Map> chat(@RequestBody Map<String, String> body) {
