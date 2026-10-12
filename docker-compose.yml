@@ -24,6 +24,13 @@ services:
     build: .
     ports:
       - "8080:8080"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AI_SERVICE_HOST=python-service
+      - AI_SERVICE_PORT=8000
     depends_on:
       - mysql
       - redis
@@ -33,7 +40,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DASHSCOPE_API_KEY=sk-ws-替换成你的key
+      - DASHSCOPE_API_KEY=sk-ws-H.PEEHLDI.ItuH.MEQCIQD-GvIojAbDEWPsFmgzZNKSU5z6PkUH_qPggwgkYLlxAQIfKskJo_rOsgj0XgrbdYK6oaX3ERHSv_Dd3XgcjCG8CA
       - CHAT_MODEL=qwen-plus
       - EMBED_MODEL=text-embedding-v3
     depends_on:
