@@ -21,7 +21,7 @@ services:
       - "6379:6379"
 
   java-service:
-    build: ./saas
+    build: .
     ports:
       - "8080:8080"
     depends_on:
