@@ -1,20 +1,10 @@
-# docker-compose.yml — 一键启动全部服务
+# docker-compose.yml — 一键启动（MySQL 用本地，Redis/Java/Python 用 Docker）
 # 使用：docker-compose up -d
 # 停止：docker-compose down
 
 version: "3.8"
 
 services:
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: Cxt517852504
-      MYSQL_DATABASE: saas_db
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
   redis:
     image: redis:7-alpine
     ports:
@@ -25,14 +15,16 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DB_HOST=mysql
+      # MySQL 用本地宿主机
+      - DB_HOST=host.docker.internal
       - DB_PORT=3306
+      # Redis 用 Docker 容器
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # Python AI 服务
       - AI_SERVICE_HOST=python-service
       - AI_SERVICE_PORT=8000
     depends_on:
-      - mysql
       - redis
 
   python-service:
@@ -43,8 +35,3 @@ services:
       - DASHSCOPE_API_KEY=sk-ws-H.PEEHLDI.ItuH.MEQCIQD-GvIojAbDEWPsFmgzZNKSU5z6PkUH_qPggwgkYLlxAQIfKskJo_rOsgj0XgrbdYK6oaX3ERHSv_Dd3XgcjCG8CA
       - CHAT_MODEL=qwen-plus
       - EMBED_MODEL=text-embedding-v3
-    depends_on:
-      - mysql
-
-volumes:
-  mysql_data:
